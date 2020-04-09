@@ -116,6 +116,11 @@ Has an effect if and only if `org-roam-buffer-position' is `top' or `bottom'."
   :type 'boolean
   :group 'org-roam)
 
+(defcustom org-roam-auto-open-roam nil
+  "When non-nil, will open the `org-roam' buffer when opening a roam file."
+  :type 'boolean
+  :group 'org-roam)
+
 ;;;; Dynamic variables
 (defvar org-roam--current-buffer nil
   "Currently displayed file in `org-roam' buffer.")
@@ -789,6 +794,7 @@ Otherwise, behave as if called interactively."
     (org-roam-db-build-cache)
     (add-hook 'find-file-hook #'org-roam--find-file-hook-function)
     (add-hook 'kill-emacs-hook #'org-roam-db--close-all)
+    (add-hook 'buffer-list-update-hook #'org-roam--org-mode-hook-function)
     (advice-add 'rename-file :after #'org-roam--rename-file-advice)
     (advice-add 'delete-file :before #'org-roam--delete-file-advice))
    (t
@@ -803,6 +809,13 @@ Otherwise, behave as if called interactively."
         (org-link-set-parameters "file" :face 'org-link)
         (remove-hook 'post-command-hook #'org-roam--maybe-update-buffer t)
         (remove-hook 'after-save-hook #'org-roam-db--update-file t))))))
+
+(defun org-roam--org-mode-hook-function ()
+  "Called by `org-mode-hook' when mode `org-roam-mode' is on."
+  (when (and org-roam-auto-open-roam
+             (org-roam--org-roam-file-p (buffer-file-name))
+             (not (eq 'visible (org-roam--current-visibility))))
+    (org-roam--set-up-buffer)))
 
 (defun org-roam--find-file-hook-function ()
   "Called by `find-file-hook' when mode `org-roam-mode' is on."
